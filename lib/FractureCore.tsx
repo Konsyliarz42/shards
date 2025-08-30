@@ -1,26 +1,8 @@
-import type React from "react";
+import React from "react";
 import Page404 from "./Page404";
+import type { LayoutComponent, PageComponent, PageComponentProps, PathParams, Shard } from "./types";
 
-export interface PathParams {
-  [key: string]: string;
-}
-export interface PageComponentProps {
-  hash?: string;
-  pathParams?: PathParams;
-  searchParams?: URLSearchParams;
-}
-export type PageComponent = React.ComponentType<PageComponentProps>;
-
-export interface LayoutComponentProps {
-  children: React.ReactElement | React.ReactElement[];
-}
-export type LayoutComponent = React.ComponentType<LayoutComponentProps>;
-
-export interface Shard {
-  Page: PageComponent;
-  Layout?: LayoutComponent;
-  overrideLayout?: boolean;
-}
+export const PageContext = React.createContext<PageComponentProps>({});
 
 export interface FractureCoreProps {
   mainShard: Shard;
@@ -30,24 +12,14 @@ export interface FractureCoreProps {
 export default function FractureCore(props: FractureCoreProps): React.ReactNode {
   const RootPage: PageComponent | undefined = props.mainShard.Page;
   const RootLayout: LayoutComponent | undefined = props.mainShard.Layout;
-
-  // Remove slash on the end of pathname
   const currentPathname = window.location.pathname;
-  if (currentPathname !== "/" && currentPathname.endsWith("/")) {
-    replace(currentPathname.slice(0, currentPathname.length - 1));
-    return null;
-  }
-
-  let layouts: LayoutComponent[] = [];
-  if (RootLayout) layouts.push(RootLayout);
+  let layouts: LayoutComponent[] = RootLayout ? [RootLayout] : [];
 
   // Render matched pathname with shard
   if (currentPathname !== "/") {
-    const currentPathnameParts = currentPathname.slice(1).split("/");
+    const currentPathnameParts = splitPathname(currentPathname);
     for (const [pathname, shard] of Object.entries(props.shards)) {
-      if (!pathname.startsWith("/")) throw new Error("Pathname of shard should be start with '/'");
-
-      const pathnameParts = pathname.slice(1).split("/");
+      const pathnameParts = splitPathname(pathname);
       const { isMatched, isSubpath, pathParams } = matchPathname(currentPathnameParts, pathnameParts);
       const pageProps = getPageProps(pathParams);
 
@@ -57,7 +29,7 @@ export default function FractureCore(props: FractureCoreProps): React.ReactNode 
 
       if (isMatched) return buildFullPage(layouts, shard.Page, pageProps);
     }
-  } else return buildFullPage(layouts, RootPage);
+  } else return buildFullPage(layouts, RootPage, getPageProps(undefined));
 
   // Render page 404
   let Page = Page404 as PageComponent;
@@ -71,34 +43,23 @@ export default function FractureCore(props: FractureCoreProps): React.ReactNode 
   return buildFullPage(layouts, Page);
 }
 
-function replace(pathname?: string, searchParams?: URLSearchParams, hash?: string): void {
-  const location = window.location;
-  const search = searchParams ? `?${searchParams.toString()}` : undefined;
-  const url = `${location.origin}${pathname || location.pathname}${search || location.search}${hash || location.hash}`;
+function splitPathname(pathname: string): string[] {
+  let newPathname = pathname;
 
-  location.replace(url);
-}
+  if (pathname.startsWith("/")) newPathname = newPathname.slice(1);
+  if (pathname.endsWith("/")) newPathname = newPathname.slice(0, -1);
 
-function getPageProps(pathParams: PathParams | undefined): PageComponentProps {
-  const searchString = window.location.search;
-  const searchParams = searchString.length > 3 ? new URLSearchParams(searchString) : undefined;
-
-  const hashString = window.location.hash;
-  const hash = hashString.length > 1 ? hashString.slice(1) : undefined;
-
-  return { hash, searchParams, pathParams };
+  return newPathname.split("/");
 }
 
 function matchPathname(
   currentPathnameParts: string[],
-  pathnameParts: string[],
+  shardPathnameParts: string[],
 ): { isMatched: boolean; isSubpath: boolean; pathParams: PathParams | undefined } {
-  if (pathnameParts.length > currentPathnameParts.length)
-    return { isMatched: false, isSubpath: false, pathParams: undefined };
-
   const params: PathParams = {};
-  for (let index = 0; index < pathnameParts.length; index++) {
-    const partA = pathnameParts[index];
+
+  for (let index = 0; index < shardPathnameParts.length; index++) {
+    const partA = shardPathnameParts[index];
     const partB = currentPathnameParts[index];
 
     if (partA.startsWith("{") && partA.endsWith("}")) {
@@ -113,10 +74,23 @@ function matchPathname(
     }
   }
 
-  if (pathnameParts.length < currentPathnameParts.length)
+  if (shardPathnameParts.length < currentPathnameParts.length)
     return { isMatched: false, isSubpath: true, pathParams: params };
 
   return { isMatched: true, isSubpath: false, pathParams: params };
+}
+
+function getPageProps(pathParams: PathParams | undefined): PageComponentProps {
+  const searchString = window.location.search;
+  const searchParams = searchString.startsWith("?") ? new URLSearchParams(searchString) : undefined;
+
+  const hashString = window.location.hash;
+  const hash = hashString.startsWith("#") ? hashString.slice(1) : undefined;
+
+  let newPathParams = pathParams;
+  if (pathParams && Object.keys(pathParams).length === 0) newPathParams = undefined;
+
+  return { hash, searchParams, pathParams: newPathParams };
 }
 
 function buildFullPage(
@@ -130,5 +104,5 @@ function buildFullPage(
     FullPage = <Layout>{FullPage}</Layout>;
   });
 
-  return FullPage;
+  return <PageContext.Provider value={pageProps || {}}>{FullPage}</PageContext.Provider>;
 }

@@ -1,5 +1,5 @@
 import type React from "react";
-import type { LayoutComponentProps, PageComponentProps } from "../lib/FractureCore";
+import type { LayoutComponentProps, PageComponentProps } from "../../lib/types";
 
 export function RootLayout(props: LayoutComponentProps): React.ReactNode {
   return (
@@ -11,10 +11,6 @@ export function RootLayout(props: LayoutComponentProps): React.ReactNode {
 }
 
 export default function RootPage(props: PageComponentProps): React.ReactNode {
-  return (
-    <>
-      <h1>RootPage</h1>
-      <p>{JSON.stringify(props, undefined, 2)}</p>
-    </>
-  );
+  console.log(window.location.href, props);
+  return <h1>RootPage</h1>;
 }
