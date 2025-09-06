@@ -1,6 +1,9 @@
 import type React from "react";
 
-export default function Page404(): React.ReactNode {
+/**
+ * Default page used when shard(route) is not found.
+ */
+export default function Page404(): React.ReactElement {
   return (
     <section>
       <h1>404</h1>

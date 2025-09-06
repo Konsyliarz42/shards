@@ -5,23 +5,37 @@ import type { LayoutComponent, PageComponent, PageComponentProps, PathParams, Sh
 export const PageContext = React.createContext<PageComponentProps>({});
 
 export interface FractureCoreProps {
+  /**
+   * Definition of root path (`/`)
+   */
   mainShard: Shard;
+  /**
+   * Definition of routes.
+   */
   shards: { [pathname: string]: Shard };
+  /**
+   * Definition of page with 404 error.
+   */
   unknownShard?: Shard;
 }
-export default function FractureCore(props: FractureCoreProps): React.ReactNode {
+/**
+ * Just router, core of rendering pages.
+ * @param {FractureCoreProps} props Router configuration.
+ */
+export default function FractureCore(props: FractureCoreProps): React.ReactElement {
   const RootPage: PageComponent | undefined = props.mainShard.Page;
   const RootLayout: LayoutComponent | undefined = props.mainShard.Layout;
   const currentPathname = window.location.pathname;
   let layouts: LayoutComponent[] = RootLayout ? [RootLayout] : [];
 
   // Render matched pathname with shard
+  let pageProps = getPageProps(undefined);
   if (currentPathname !== "/") {
     const currentPathnameParts = splitPathname(currentPathname);
     for (const [pathname, shard] of Object.entries(props.shards)) {
       const pathnameParts = splitPathname(pathname);
       const { isMatched, isSubpath, pathParams } = matchPathname(currentPathnameParts, pathnameParts);
-      const pageProps = getPageProps(pathParams);
+      pageProps = getPageProps(pathParams);
 
       if ((isMatched || isSubpath) && shard.Layout)
         if (shard.overrideLayout) layouts = [shard.Layout];
@@ -29,7 +43,7 @@ export default function FractureCore(props: FractureCoreProps): React.ReactNode 
 
       if (isMatched) return buildFullPage(layouts, shard.Page, pageProps);
     }
-  } else return buildFullPage(layouts, RootPage, getPageProps(undefined));
+  } else return buildFullPage(layouts, RootPage, pageProps);
 
   // Render page 404
   let Page = Page404 as PageComponent;
@@ -40,7 +54,7 @@ export default function FractureCore(props: FractureCoreProps): React.ReactNode 
       else layouts.push(props.unknownShard.Layout);
     }
   }
-  return buildFullPage(layouts, Page);
+  return buildFullPage(layouts, Page, pageProps);
 }
 
 function splitPathname(pathname: string): string[] {
@@ -80,7 +94,7 @@ function matchPathname(
   return { isMatched: true, isSubpath: false, pathParams: params };
 }
 
-function getPageProps(pathParams: PathParams | undefined): PageComponentProps {
+function getPageProps(pathParams: PageComponentProps["pathParams"]): PageComponentProps {
   const searchString = window.location.search;
   const searchParams = searchString.startsWith("?") ? new URLSearchParams(searchString) : undefined;
 
@@ -96,13 +110,12 @@ function getPageProps(pathParams: PathParams | undefined): PageComponentProps {
 function buildFullPage(
   layouts: LayoutComponent[],
   Page: PageComponent,
-  pageProps?: PageComponentProps,
+  pageProps: PageComponentProps,
 ): React.ReactElement {
   let FullPage: React.ReactElement = <Page {...pageProps} />;
-
   layouts.reverse().forEach((Layout) => {
     FullPage = <Layout>{FullPage}</Layout>;
   });
 
-  return <PageContext.Provider value={pageProps || {}}>{FullPage}</PageContext.Provider>;
+  return <PageContext.Provider value={pageProps}>{FullPage}</PageContext.Provider>;
 }
