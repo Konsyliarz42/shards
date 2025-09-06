@@ -27,7 +27,7 @@ export interface PageComponentProps {
 export type PageComponent = React.ComponentType<PageComponentProps>;
 
 export interface LayoutComponentProps {
-  children: React.ReactElement | React.ReactElement[];
+  children: React.ReactElement;
 }
 export type LayoutComponent = React.ComponentType<LayoutComponentProps>;
 

@@ -53,8 +53,7 @@ export type ReplaceUrl =
   | string
   | URL
   | {
-      pathname?: string;
-      searchParams?: URLSearchParams | string;
+      search?: URLSearchParams | string;
       hash?: string;
     };
 /**
@@ -66,8 +65,7 @@ export function replace(url: ReplaceUrl): void {
   let _url:
     | URL
     | {
-        pathname?: string;
-        searchParams?: URLSearchParams | string;
+        search?: URLSearchParams | string;
         hash?: string;
       };
 
@@ -76,8 +74,8 @@ export function replace(url: ReplaceUrl): void {
     else _url = new URL(`${location.origin}${url}`);
   } else _url = url;
 
-  const pathname = _url.pathname ? unifyPathname(_url.pathname) : location.pathname;
-  const search = _url.searchParams ? stringifySearchParams(_url.searchParams) : location.search;
+  const pathname = location.pathname;
+  const search = _url.search ? stringifySearchParams(_url.search) : location.search;
   const hash = _url.hash ? unifyHash(_url.hash) : location.hash;
 
   window.history.replaceState(
@@ -90,7 +88,7 @@ export function replace(url: ReplaceUrl): void {
     `${pathname}${search}${hash}`,
   );
   window.dispatchEvent(
-    new CustomEvent("changeUrl", { detail: new URL(`${window.location.origin}${pathname}${search}${hash}`) }),
+    new CustomEvent("changeUrl", { detail: new URL(`${window.location.origin}${location.pathname}${search}${hash}`) }),
   );
 }
 
@@ -101,7 +99,7 @@ export type RedirectUrl =
       hash?: string;
       origin?: Origin;
       pathname: string;
-      searchParams?: URLSearchParams | string;
+      search?: URLSearchParams | string;
     };
 /**
  * Redirect to new URL address. \
@@ -116,9 +114,9 @@ export function redirect(url: RedirectUrl): void {
 
   const origin = url.origin ? stringifyOrigin(url.origin) : "";
   const pathname = unifyPathname(url.pathname);
-  const searchParams = url.searchParams ? stringifySearchParams(url.searchParams) : "";
+  const search = url.search ? stringifySearchParams(url.search) : "";
   const hash = url.hash ? unifyHash(url.hash) : "";
-  window.location.assign(`${origin}${pathname}${searchParams}${hash}`);
+  window.location.assign(`${origin}${pathname}${search}${hash}`);
 }
 
 /**
