@@ -16,7 +16,7 @@ export function stringifyOrigin(origin: Origin): string {
  */
 export function unifyPathname(pathname: string): string {
   if (pathname.length === 0) return "";
-  if (pathname === "/") return "/"
+  if (pathname === "/") return "/";
 
   let newPathname = pathname;
 
