@@ -11,10 +11,12 @@ export function stringifyOrigin(origin: Origin): string {
 }
 
 /**
- * Return pathname as unified string (without trailing `/`) or empty string.
+ * Return pathname as unified string (without trailing `/`) or empty string. \
+ * Root pathname (`/`) is an exception.
  */
 export function unifyPathname(pathname: string): string {
   if (pathname.length === 0) return "";
+  if (pathname === "/") return "/"
 
   let newPathname = pathname;
 
@@ -74,7 +76,7 @@ export function replace(url: ReplaceUrl): void {
     else _url = new URL(`${location.origin}${url}`);
   } else _url = url;
 
-  const pathname = location.pathname;
+  const pathname = unifyPathname(location.pathname);
   const search = _url.search ? stringifySearchParams(_url.search) : location.search;
   const hash = _url.hash ? unifyHash(_url.hash) : location.hash;
 
@@ -88,7 +90,7 @@ export function replace(url: ReplaceUrl): void {
     `${pathname}${search}${hash}`,
   );
   window.dispatchEvent(
-    new CustomEvent("changeUrl", { detail: new URL(`${window.location.origin}${location.pathname}${search}${hash}`) }),
+    new CustomEvent("changeUrl", { detail: new URL(`${window.location.origin}${pathname}${search}${hash}`) }),
   );
 }
 
@@ -107,16 +109,22 @@ export type RedirectUrl =
  * @param {RedirectUrl} url Target URL as `string`, `URL` or object based on {@link https://developer.mozilla.org/en-US/docs/Web/API/Location#location_anatomy | location anatomy}.
  */
 export function redirect(url: RedirectUrl): void {
+  let stringUrl: string;
+
   if (typeof url === "string") {
-    window.location.assign(url);
-    return;
+    stringUrl = url;
+  } else {
+    const origin = url.origin ? stringifyOrigin(url.origin) : "";
+    const pathname = unifyPathname(url.pathname);
+    const search = url.search ? stringifySearchParams(url.search) : "";
+    const hash = url.hash ? unifyHash(url.hash) : "";
+
+    stringUrl = `${origin}${pathname}${search}${hash}`;
   }
 
-  const origin = url.origin ? stringifyOrigin(url.origin) : "";
-  const pathname = unifyPathname(url.pathname);
-  const search = url.search ? stringifySearchParams(url.search) : "";
-  const hash = url.hash ? unifyHash(url.hash) : "";
-  window.location.assign(`${origin}${pathname}${search}${hash}`);
+  if (stringUrl === "") return;
+
+  window.location.assign(stringUrl);
 }
 
 /**
