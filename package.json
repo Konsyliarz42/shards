@@ -1,0 +1,20 @@
+{
+  "name": "shards",
+  "version": "1.0.0",
+  "scripts": {
+    "fix": "biome check --fix --unsafe",
+    "test": "vitest run"
+  },
+  "author": "Tomasz Kordiak",
+  "license": "MIT",
+  "description": "Simple react router.",
+  "dependencies": {
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.2",
+    "@types/node": "24.3.0",
+    "@types/react": "^19",
+    "typescript": "5.9.2"
+  }
+}
